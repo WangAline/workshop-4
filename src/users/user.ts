@@ -12,8 +12,31 @@ export async function user(userId: number) {
   _user.use(express.json());
   _user.use(bodyParser.json());
 
+
   // TODO implement the status route
+  // Initialisez les placeholders pour les données des messages
+  let lastReceivedMessage: string | null = null;
+  let lastSentMessage: string | null = null;
+
+  // Implémentez la route /status
+  _user.get("/status", (req, res) => {
+    res.send("live");
+  });
+
+  // Route pour le dernier message reçu
+  _user.get("/getLastReceivedMessage", (req, res) => {
+    res.json({ result: lastReceivedMessage });
+  });
+
+  // Route pour le dernier message envoyé
+  _user.get("/getLastSentMessage", (req, res) => {
+    res.json({ result: lastSentMessage });
+  });
+
   // _user.get("/status", (req, res) => {});
+  _user.get("/status", (req, res) => {
+    res.send("live");
+  });
 
   const server = _user.listen(BASE_USER_PORT + userId, () => {
     console.log(
