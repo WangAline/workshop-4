@@ -1,6 +1,7 @@
 import bodyParser from "body-parser";
 import express from "express";
 import { BASE_ONION_ROUTER_PORT } from "../config";
+import * as crypto from "../crypto";
 
 export async function simpleOnionRouter(nodeId: number) {
   const onionRouter = express();
@@ -11,6 +12,14 @@ export async function simpleOnionRouter(nodeId: number) {
   let lastReceivedEncryptedMessage: string | null = null;
   let lastReceivedDecryptedMessage: string | null = null;
   let lastMessageDestination: number | null = null;
+  const { publicKey, privateKey } = await crypto.generateRsaKeyPair();
+  let PriK=await crypto.exportPrvKey(privateKey)
+  let PubK = await crypto.exportPubKey(publicKey);
+
+  const data = JSON.stringify({
+    nodeId,
+    pubKey: PubK,
+  });
 
   // Route for the last received encrypted message
   onionRouter.get("/getLastReceivedEncryptedMessage", (req, res) => {
@@ -27,11 +36,13 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastMessageDestination });
   });
 
-  
-  // TODO implement the status route
-  // onionRouter.get("/status", (req, res) => {});
   onionRouter.get("/status", (req, res) => {
     res.send("live");
+  });
+
+  onionRouter.get('/getPrivateKey', (req, res) => {
+    const base64PrivateKey = Buffer.from(PriK);
+    res.json({ result: base64PrivateKey });
   });
   
   const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
