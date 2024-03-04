@@ -123,10 +123,10 @@ export async function createRandomSymmetricKey(): Promise<webcrypto.CryptoKey> {
   const key = await webcrypto.subtle.generateKey(
     {
       name: "AES-CBC",
-      length: 256, // can be 128, 192, or 256
+      length: 256, 
     },
-    true, // extractable
-    ["encrypt", "decrypt"] // key usages
+    true, 
+    ["encrypt", "decrypt"] 
   );
   return key;
 }
@@ -145,7 +145,7 @@ export async function importSymKey(strKey: string): Promise<webcrypto.CryptoKey>
     "raw",
     arrayBufferKey,
     {
-      name: "AES-GCM",
+      name: "AES-CBC",
     },
     true,
     ["encrypt", "decrypt"]
@@ -160,15 +160,14 @@ export async function symEncrypt(
 ): Promise<string> {
   const encoder = new TextEncoder();
   const encodedData = encoder.encode(data);
-  const encryptedData = await webcrypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: webcrypto.getRandomValues(new Uint8Array(12)), // it's important to use a unique IV for every encryption
-    },
-    key,
-    encodedData
-  );
-  return Buffer.from(encryptedData).toString('base64');
+  const iv = webcrypto.getRandomValues(new Uint8Array(16)); 
+  const encryptedData = await webcrypto.subtle.encrypt({ name: "AES-CBC", iv }, key, encodedData);
+  
+  const encryptedDataWithIv = new Uint8Array(iv.length + encryptedData.byteLength);
+  encryptedDataWithIv.set(iv, 0);
+  encryptedDataWithIv.set(new Uint8Array(encryptedData), iv.length);
+  
+  return Buffer.from(encryptedDataWithIv).toString('base64');
 }
 
 // Decrypt a message using a symmetric key
@@ -176,15 +175,15 @@ export async function symDecrypt(
   strKey: string,
   encryptedData: string
 ): Promise<string> {
-  const key = await importSymKey(strKey); // Assuming this function returns the correct key
-  const arrayBufferEncryptedData = Buffer.from(encryptedData, 'base64');
+  const key = await importSymKey(strKey); 
+  const arrayBufferEncryptedData = base64ToArrayBuffer(encryptedData); 
   const decryptedData = await webcrypto.subtle.decrypt(
     {
       name: "AES-CBC",
-      iv: arrayBufferEncryptedData.slice(0, 12), // Assuming the first 12 bytes are the IV
+      iv: arrayBufferEncryptedData.slice(0, 16), 
     },
     key,
-    arrayBufferEncryptedData.slice(12) // The actual encrypted data, excluding the IV
+    arrayBufferEncryptedData.slice(16) 
   );
   const decoder = new TextDecoder();
   return decoder.decode(decryptedData);
